@@ -1,0 +1,78 @@
+<html>
+    <head></head>
+    
+    <body>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+        <script>
+            $(document).ready(function() {
+                // Return current date in format: dd.mm.yyyy. Example: 21.10.2016
+                function getStrToday() {
+                    var today = new Date();
+                    var day = today.getDate();
+                    if (day < 10) {
+                        day = "0" + day;
+                    }
+                    
+                    var month = today.getMonth() + 1;
+                    if (month < 10) {
+                        month = "0" + month;
+                    }
+                    
+                    return day + "." + month + "." + today.getFullYear();
+                }
+                
+                var url = 'http://www.cbr.ru/scripts/XML_daily.asp?date_req=' + getStrToday();
+                console.log(url);
+                
+                // Для обхода ограничения кросс-доменных запросов используем прокси.
+                // Иначе будет ошибка вида:
+                // Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource 
+                // at https://en.wikipedia.org/wiki/Cross-origin_resource_sharing. (Reason: CORS header 
+                // ‘Access-Control-Allow-Origin’ missing).
+                //
+                // Все из-за того, что сервер к которому идет запрос должен дать разрешение браузеру
+                // добавив в ответ заголовок "Access-Control-Allow-Origin". Без него браузер не даст
+                // работать
+                //
+                // source: http://stackoverflow.com/a/17299796/5909792
+                $.ajaxPrefilter( function (options) {
+                  if (options.crossDomain && jQuery.support.cors) {
+                    var http = (window.location.protocol === 'http:' ? 'http:' : 'https:');
+                    options.url = http + '//cors-anywhere.herokuapp.com/' + options.url;
+                    //options.url = "http://cors.corsproxy.io/url=" + options.url;
+                  }
+                });
+                
+                $.ajax({
+                    type: "GET",
+                    url: url,
+                    dataType: "xml",
+                    success: function(xml) {
+                        console.log(xml);
+                        
+                        var table = "<table>";
+                        //table += "<caption>" + url + "</caption>";
+                        
+                        $(xml).find("Valute").each(function () {
+                            var currency = $(this).find("CharCode").text();
+                            var value = $(this).find("Value").text();
+                        
+                            table += "<tr><td>" + currency + "</td><td>" 
+                                  + value + "</td>" + "</tr>";
+                            
+                            console.log("Valute: " + currency + ": " + value);
+
+                        });
+                        
+                        table += "</table>";
+                        
+                        $("#viewer").html(table);
+                    }
+                });
+            });
+        </script>
+        
+        <div id="viewer"></div>
+        
+    </body>
+</html>
